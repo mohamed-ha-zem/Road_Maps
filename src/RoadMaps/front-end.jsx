@@ -1439,7 +1439,7 @@ export default function FrontEnd() {
             <motion.div
               key={sectionIdx}
               initial={{ opacity: 0, y: -100 }}
-              viewport={{ once: true, amount: .6 }}
+              viewport={{ once: true, amount: .1 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: .2 }}
               className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-gray-700"
@@ -1453,6 +1453,7 @@ export default function FrontEnd() {
                   <motion.div
                     key={skillIdx}
                     initial={{ opacity: 0, scale: 0.1 }}
+                    viewport={{ once: true, amount: .1 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, delay: skillIdx * 0.4 }}
                     className="bg-gray-800 rounded-xl p-6 shadow-md hover:shadow-xl transition-shadow duration-300 border border-gray-600 cursor-pointer glow-effect"
