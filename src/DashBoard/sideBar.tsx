@@ -1,35 +1,27 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useContext } from "react";
-import { Menu } from "lucide-react";
 import { SidebarContext } from "../Context/sideBarContext";
 import { sideBarLinkes } from "./RoadMapLinkes";
-import { Link, NavLink } from "react-router-dom";
 import DropdownMenu from "../Components/dropdownMenu";
 import { BgContext } from "../Context/bgContext";
 import { Questions } from "./questionsLinks";
+import React from "react";
+import { Cities } from "./cities";
+import { CalendarDays } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Sidebar() {
   const bgColor = useContext(BgContext);
   const sideBarOpen = useContext(SidebarContext);
   const links = sideBarLinkes();
   const questions = Questions();
+  const cities = Cities();
 
   const sidebarVariants = {
     open: { x: 0, opacity: 1 },
     closed: { x: "-100%", opacity: 0 },
   };
 
-  const linkVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: (i) => ({
-      opacity: 1,
-      x: 0,
-      transition: {
-        delay: i * 0.05,
-        duration: 0.3,
-      },
-    }),
-  };
 
   return (
     <AnimatePresence>
@@ -43,17 +35,17 @@ export default function Sidebar() {
           transition={{ duration: 0.3 }}
           style={{ position: "absolute" }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <button
-              className="md:hidden p-2 rounded-full hover:bg-amber-500/20"
-              onClick={sideBarOpen.toggleSidebar} // Use toggle function from context
-            >
-              <Menu className="w-6 h-6 rotate-180 text-white" />
-            </button>
-          </div>
-          <nav className="space-y-2 overflow-y-auto h-[calc(100vh-100px)] scrollbar-hide pr-1">
+          <nav className="space-y-2 overflow-y-auto h-[calc(100vh-100px)] scrollbar-hide pr-1 mt-5 ">
             <DropdownMenu title={"Road Maps"} links={links} bgColor={bgColor}/>
             <DropdownMenu title={"Questions"} links={questions} bgColor={bgColor}/>
+            <DropdownMenu title={"famous cities"} links={cities} bgColor={bgColor}/>
+            <Link
+              to={"calender"}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200 shadow-md ${bgColor.color} w-full justify-between cursor-pointer`}
+            >
+              <h2>Calender</h2>
+              <CalendarDays className="w-5 h-5" />
+            </Link>
           </nav>
         </motion.div>
       )}

@@ -1,8 +1,10 @@
 import { useContext, useState } from "react";
-import { motion, AnimatePresence, scale } from "framer-motion";
-import { Bell, CalendarDays, Flag, Grid3X3, Menu, Palette } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, CalendarDays, Grid3X3, Menu, Palette } from "lucide-react";
 import { BgContext } from "../Context/bgContext";
 import { SidebarContext } from "../Context/sideBarContext";
+import React from "react";
+
 
 export default function TopBar() {
     // const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar الألوان
@@ -41,7 +43,7 @@ export default function TopBar() {
                 {/* Left Section */}
                 <div className="flex items-center gap-3">
                     <button
-                        className="md:hidden p-2 W-full rounded-full hover:bg-amber-500/20"
+                        className="md:hidden p-2 W-full rounded-full hover:bg-amber-500/20"
                         onClick={() => setIsIconsSidebarOpen(true)} // فتح Sidebar الـ icons
                     >
                         <Menu className="w-6 h-6" />
