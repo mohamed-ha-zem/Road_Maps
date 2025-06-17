@@ -183,7 +183,7 @@ export default function Roadmap({title, sections}){
                     whileInView="visible"
                     exit="exit"
                     transition={{duration: .5}}
-                    className="fixed top-20 right-0 bg-gray-800 rounded-2xl p-10 w-120 text-white h-160 overflow-y-auto no-scrollbar"
+                    className="fixed top-20 right-0 bg-gray-800 rounded-2xl p-10 w-100 text-white h-160 overflow-y-auto no-scrollbar"
                 >
                     <div className="flex justify-between">
                     <h2 className="text-2xl text-yellow-400 font-bold">{selectedSkill.title}</h2>
