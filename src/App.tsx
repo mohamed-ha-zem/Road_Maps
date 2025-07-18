@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import DashBoard from './DashBoard/dashBoard';
-import FrontEnd from './RoadMaps/Front-End.tsx';
+import FrontEnd from './RoadMaps/Front-End';
 import QuestionsFrontEnd from './Questions/front-end';
 import React from 'react';
 import LaunchPad from './Pages/launchPad';
