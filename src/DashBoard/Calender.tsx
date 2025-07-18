@@ -155,7 +155,7 @@ const Calendar: React.FC<Props> = () => {
     const startDate = startOfWeek(monthStart);
     const endDate = endOfWeek(monthEnd);
     
-    const days = [];
+    const days: Date[] = [];
     let day = startDate;
     
     while (day <= endDate) {

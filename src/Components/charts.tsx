@@ -3,79 +3,51 @@ import React, { useState, useMemo, useCallback } from "react";
 
 // Define interfaces for segment data
 interface Segment {
-  name: string;
-  color: string;
-  stats: string;
-  tools: string;
-  tip: string;
-  percentage: string;
+    name: string;
+    color: string;
+    stats: string;
+    tools: string;
+    tip: string;
+    percentage: string;
 }
 
 interface SegmentData {
-  startRad: number;
-  endRad: number;
-  textRad: number;
-  outerX1: number;
-  outerY1: number;
-  outerX2: number;
-  outerY2: number;
-  innerX1: number;
-  innerY1: number;
-  innerX2: number;
-  innerY2: number;
-  textX: number;
-  textY: number;
-  midAngle: number;
+    startRad: number;
+    endRad: number;
+    textRad: number;
+    outerX1: number;
+    outerY1: number;
+    outerX2: number;
+    outerY2: number;
+    innerX1: number;
+    innerY1: number;
+    innerX2: number;
+    innerY2: number;
+    textX: number;
+    textY: number;
+    midAngle: number;
 }
 
 interface HoveredSegment {
-  global: number | null;
-  egypt: number | null;
+    global: number | null;
+    egypt: number | null;
 }
 
-// Global Front-End regions with HEX colors
-const globalSegments: Segment[] = [
-  { name: "Silicon Valley", color: "#3B82F6 #4F46E5", stats: "5000+ Tech Companies", tools: "React, Next.js", tip: "Focus on scalable UI frameworks", percentage: "20%" },
-  { name: "London", color: "#10B981 #0D9488", stats: "1200+ Startups", tools: "Vue.js, Svelte", tip: "Master CSS frameworks", percentage: "10%" },
-  { name: "Berlin", color: "#8B5CF6 #6D28D9", stats: "800+ Tech Hubs", tools: "Angular, React", tip: "Explore UI/UX trends", percentage: "8%" },
-  { name: "Bangalore", color: "#EF4444 #BE123C", stats: "2000+ Devs", tools: "React, JavaScript", tip: "Contribute to open-source", percentage: "12%" },
-  { name: "Tokyo", color: "#F59E0B #B45309", stats: "1500+ Innovators", tools: "Three.js, Vue.js", tip: "Learn 3D animations", percentage: "7%" },
-  { name: "New York", color: "#06B6D4 #0E7490", stats: "3000+ Agencies", tools: "React, Gatsby", tip: "Optimize performance", percentage: "9%" },
-  { name: "Singapore", color: "#EC4899 #BE185D", stats: "1000+ Tech Firms", tools: "Flutter, React", tip: "Build cross-platform apps", percentage: "6%" },
-  { name: "Sydney", color: "#F97316 #C2410C", stats: "700+ Startups", tools: "Svelte, Tailwind", tip: "Master PWAs", percentage: "5%" },
-  { name: "Toronto", color: "#4F46E5 #1E3A8A", stats: "900+ Dev Communities", tools: "React, TypeScript", tip: "Join meetups", percentage: "6%" },
-  { name: "Stockholm", color: "#14B8A6 #0F766E", stats: "600+ Tech Events", tools: "Svelte, Vue.js", tip: "Experiment with frameworks", percentage: "4%" },
-  { name: "Amsterdam", color: "#D946EF #A21CAF", stats: "800+ Innovators", tools: "React, Angular", tip: "Focus on accessibility", percentage: "5%" },
-  { name: "Tel Aviv", color: "#22C55E #15803D", stats: "1000+ Startups", tools: "React, Vue.js", tip: "Innovate with micro-frontends", percentage: "6%" },
-  { name: "Seoul", color: "#F43F5E #9F1239", stats: "1200+ Tech Firms", tools: "React, Three.js", tip: "Explore game-like UIs", percentage: "7%" },
-  { name: "Shenzhen", color: "#10B981 #15803D", stats: "1500+ Hardware-Software", tools: "Vue.js, Flutter", tip: "Integrate hardware with web", percentage: "8%" },
-  { name: "São Paulo", color: "#8B5CF6 #6D28D9", stats: "700+ Devs", tools: "React, JavaScript", tip: "Focus on localization", percentage: "4%" },
-];
 
-// Egypt Front-End cities with HEX colors
-const egyptSegments: Segment[] = [
-  { name: "Cairo", color: "#2563EB #3730A3", stats: "1000+ Tech Startups", tools: "React, Vue.js", tip: "Join local hackathons", percentage: "35%" },
-  { name: "Giza", color: "#059669 #0F766E", stats: "500+ Dev Communities", tools: "React, Tailwind", tip: "Focus on UI/UX", percentage: "20%" },
-  { name: "Alexandria", color: "#7C3AED #6D28D9", stats: "300+ Tech Firms", tools: "Angular, JavaScript", tip: "Build responsive designs", percentage: "15%" },
-  { name: "Mansoura", color: "#DC2626 #BE123C", stats: "200+ Freelancers", tools: "Vue.js, Svelte", tip: "Explore freelance opportunities", percentage: "10%" },
-  { name: "Tanta", color: "#F97316 #C2410C", stats: "150+ Dev Groups", tools: "React, TypeScript", tip: "Contribute to open-source", percentage: "10%" },
-  { name: "Assiut", color: "#06B6D4 #0E7490", stats: "100+ Tech Events", tools: "Flutter, JavaScript", tip: "Attend tech meetups", percentage: "10%" },
-];
-
-const RoadmapCircle: React.FC = () => {
+export default function RoadmapCircle({globalSegments, egyptSegments}){
   const [hoveredSegment, setHoveredSegment] = useState<HoveredSegment>({ global: null, egypt: null });
   const [selectedSegment, setSelectedSegment] = useState<HoveredSegment>({ global: null, egypt: null });
 
   // Memoize segment calculations to avoid recalculating on every render
   const calculateSegmentData = useCallback((segments: Segment[]): SegmentData[] => {
     const totalSegments = segments.length;
-    const anglePerSegment = 360 / totalSegments;
+    const anglePerSegment = 360 / totalSegments; // 24
     const outerRadius = 100; // Outer radius of the donut
     const innerRadius = 50; // Inner radius to create the hole
     return segments.map((_, index) => {
-      const startAngle = index * anglePerSegment;
-      const endAngle = startAngle + anglePerSegment;
-      const midAngle = startAngle + anglePerSegment / 2;
+      const startAngle = index * anglePerSegment;          // 0 , 24 , 48 , 72 , 96
+      const endAngle = startAngle + anglePerSegment;      // 24 , 48 , 72 , 96 , 120
+      const midAngle = startAngle + anglePerSegment / 2; //  12 , 36 , 60 , 84 , 108
       const startRad = (startAngle * Math.PI) / 180;
       const endRad = (endAngle * Math.PI) / 180;
       const textRad = (midAngle * Math.PI) / 180;
@@ -83,16 +55,16 @@ const RoadmapCircle: React.FC = () => {
         startRad,
         endRad,
         textRad,
-        outerX1: 100 + outerRadius * Math.cos(startRad),
-        outerY1: 100 + outerRadius * Math.sin(startRad),
-        outerX2: 100 + outerRadius * Math.cos(endRad),
-        outerY2: 100 + outerRadius * Math.sin(endRad),
-        innerX1: 100 + innerRadius * Math.cos(endRad),
-        innerY1: 100 + innerRadius * Math.sin(endRad),
-        innerX2: 100 + innerRadius * Math.cos(startRad),
-        innerY2: 100 + innerRadius * Math.sin(startRad),
-        textX: 100 + (outerRadius + innerRadius) / 2 * Math.cos(textRad),
-        textY: 100 + (outerRadius + innerRadius) / 2 * Math.sin(textRad),
+        outerX1: 130 + outerRadius * Math.cos(startRad),
+        outerY1: 130 + outerRadius * Math.sin(startRad),
+        outerX2: 130 + outerRadius * Math.cos(endRad),
+        outerY2: 130 + outerRadius * Math.sin(endRad),
+        innerX1: 130 + innerRadius * Math.cos(endRad),
+        innerY1: 130 + innerRadius * Math.sin(endRad),
+        innerX2: 130 + innerRadius * Math.cos(startRad),
+        innerY2: 130 + innerRadius * Math.sin(startRad),
+        textX: 130 + (outerRadius + innerRadius) / 2 * Math.cos(textRad),
+        textY: 130 + (outerRadius + innerRadius) / 2 * Math.sin(textRad),
         midAngle,
       };
     });
@@ -106,16 +78,16 @@ const RoadmapCircle: React.FC = () => {
     (segments: Segment[], segmentData: SegmentData[], type: "global" | "egypt") => {
       return (
         <div className="flex flex-col items-center w-full max-w-[400px] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] mt-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 drop-shadow-lg">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg mt-3">
             {type === "global" ? "Global Front-End Hubs" : "Egypt Front-End Hubs"}
           </h2>
           <motion.svg
-            width="100%"
-            height="100%"
-            viewBox="0 0 200 200"
+            width="110%"
+            height="110%"
+            viewBox="0 0 260 260"
             initial={{ scale: 0.8, opacity: 0, rotate: -90 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            transition={{ duration: 1.2, ease: "easeOut", type: "spring", stiffness: 80 }}
+            transition={{ duration: 3, ease: "easeOut", type: "spring", stiffness: 300 }}
             className="relative drop-shadow-2xl"
           >
             {segments.map((segment, index) => (
@@ -129,13 +101,13 @@ const RoadmapCircle: React.FC = () => {
                     Z
                   `}
                   fill={`url(#gradient-${type}-${index})`}
-                  // initial={{ scale: 0.8, opacity: 0 }}
-                  // animate={{
-                  //   scale: hoveredSegment[type] === index || selectedSegment[type] === index ? 1.2 : 1,
-                  //   opacity: hoveredSegment[type] === index || selectedSegment[type] === index ? 1 : 0.9,
-                  // }}
-                  // whileHover={{ scale: 1.2, opacity: 1, transition: { duration: 0.3, type: "spring", stiffness: 120 } }}
-                  // transition={{ duration: 0.5, ease: "easeOut", type: "spring", stiffness: 100 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{
+                    scale: hoveredSegment[type] === index || selectedSegment[type] === index ? 1.2 : 1,
+                    opacity: hoveredSegment[type] === index || selectedSegment[type] === index ? 1 : 0.9,
+                  }}
+                  whileHover={{ scale: 1.2, opacity: 1, transition: { duration: 0.3, type: "spring", stiffness: 120 } }}
+                  transition={{ duration: 0.5, ease: "easeOut", type: "spring", stiffness: 100 }}
                   onMouseEnter={() => setHoveredSegment((prev) => ({ ...prev, [type]: index }))}
                   onMouseLeave={() => setHoveredSegment((prev) => ({ ...prev, [type]: null }))}
                   onClick={() => setSelectedSegment((prev) => ({ ...prev, [type]: index }))}
@@ -187,7 +159,8 @@ const RoadmapCircle: React.FC = () => {
           <AnimatePresence>
             {hoveredSegment[type] !== null && (
               <motion.div
-                className="text-center text-white mt-6 bg-gradient-to-br from-gray-800/90 to-gray-900/90 p-4 sm:p-6 rounded-xl shadow-xl"
+                className="relative w-fit h-fit text-center text-white bg-gradient-to-br from-gray-800/90 to-gray-900/90 p-4 sm:p-6 rounded-xl shadow-xl"
+                style={{bottom: "450px"}}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.9 }}
@@ -201,8 +174,7 @@ const RoadmapCircle: React.FC = () => {
           </AnimatePresence>
         </div>
       );
-    },
-    [hoveredSegment, selectedSegment]
+    },[hoveredSegment, selectedSegment]
   );
 
   return (
@@ -282,5 +254,3 @@ const RoadmapCircle: React.FC = () => {
     </div>
   );
 };
-
-export default RoadmapCircle;

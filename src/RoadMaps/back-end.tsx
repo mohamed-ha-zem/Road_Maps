@@ -1,5 +1,4 @@
-import { Code, Database, Server, Lock, TestTube, Rocket, FileTerminal, Globe, Box, Blocks } from "lucide-react";
-import React from "react";
+import { Code, Database, Server, Lock, TestTube, Rocket, FileTerminal, Globe, Box, Blocks } from "lucide-react";import React from "react";
 import Roadmap from "../Components/RoadMap";
 
 const sections = [

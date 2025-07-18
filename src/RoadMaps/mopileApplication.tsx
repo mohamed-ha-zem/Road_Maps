@@ -1,4 +1,4 @@
-import { Code, Database, Server, Lock, TestTube, Rocket, FileTerminal, Globe, Box, Blocks, FileCode, Workflow } from "lucide-react";
+import { Code, TestTube, Rocket, Box, Blocks, FileCode, Workflow } from "lucide-react";
 import React from "react";
 import Roadmap from "../Components/RoadMap";
 
@@ -604,7 +604,7 @@ const sections = [
 ]
 
 export default function MopileApplication(){
-    return (
-        <Roadmap title={"Mopile Application"} sections={sections}/>
-    )
+  return (
+    <Roadmap title={"Mopile Application"} sections={sections}/>
+  )
 }

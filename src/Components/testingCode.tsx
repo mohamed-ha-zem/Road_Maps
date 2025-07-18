@@ -1,277 +1,416 @@
-export default function QuestionsFrontEnd(){
-  const [selectedSkill, setSelectedSkill] = useState<number>(0); // chose the skill 
-  const [currentQuestion, setCurrentQuestion] = useState<number>(0); // questions to current skill
-  const [userAnswers, setUserAnswers] = useState<(string | null)[]>(Array(quizData[0].questions.length).fill(null));
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-  const [score, setScore] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(600); // 10 minutes in seconds
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
+import { CalendarDays, Trash2, Edit2, Plus } from 'lucide-react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
-  const currentSkill = quizData[selectedSkill];
-  const questions = currentSkill.questions;
-  const totalQuestions = questions.length;
+// Define types for events
+interface Event {
+  id: string;
+  description: string;
+  date: Date;
+}
 
-  // Timer logic
-  useEffect((): any =>{
-    if (timeLeft > 0 && !isSubmitted) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            submitQuiz();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
+interface Props {}
+
+const ItemType = 'EVENT';
+
+const DraggableEvent: React.FC<{ event: Event; day: Date; onEdit: (event: Event, day: Date) => void; onDelete: (id: string) => void }> = ({ event, day, onEdit, onDelete }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: ItemType,
+    item: { id: event.id, description: event.description },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  }), [event]);
+
+  return (
+    <motion.div
+      ref={drag}
+      className={`text-xs p-1 mt-1 rounded truncate shadow-sm cursor-move text-gradient flex justify-between items-center ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+      }}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+    >
+      <span>{event.description}</span>
+      <div className="flex gap-1">
+        <motion.button
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(event, day);
+          }}
+          className="text-blue-500 hover:text-blue-700"
+        >
+          <Edit2 size={12} />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(event.id);
+          }}
+          className="text-red-500 hover:text-red-700"
+        >
+          <Trash2 size={12} />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+};
+
+const DroppableDay: React.FC<{
+  day: Date;
+  events: Event[];
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  onDrop: (id: string, description: string, newDate: Date) => void;
+  onAddEvent: (day: Date) => void;
+  onEdit: (event: Event, day: Date) => void;
+  onDelete: (id: string) => void;
+}> = ({ day, events, isCurrentMonth, isToday, onDrop, onAddEvent, onEdit, onDelete }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: ItemType,
+    drop: (item: { id: string; description: string }) => {
+      onDrop(item.id, item.description, day);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }), [day]);
+
+  return (
+    <motion.div
+      ref={drop}
+      className={`p-3 h-32 rounded-lg cursor-pointer relative
+        ${isCurrentMonth ? 'bg-gradient-to-br from-gray-50 to-white' : 'bg-gray-200'}
+        ${isToday ? 'border-2 border-blue-500' : ''}
+        ${isOver ? 'bg-blue-100' : ''}`}
+      whileHover={{ scale: 1.02 }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onAddEvent(day);
+      }}
+    >
+      <div className="flex justify-between items-center">
+        <div className="text-sm font-medium text-gray-800">{format(day, 'd')}</div>
+        <motion.button
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddEvent(day);
+          }}
+          className="text-blue-500 hover:text-blue-700"
+        >
+          <Plus size={16} />
+        </motion.button>
+      </div>
+      <AnimatePresence>
+        {events.map(event => (
+          <DraggableEvent
+            key={event.id}
+            event={event}
+            day={day}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+const Calendar: React.FC<Props> = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<Event[]>(() => {
+    const savedEvents = localStorage.getItem('calendarEvents');
+    console.log('Loading events from localStorage:', savedEvents);
+    return savedEvents ? JSON.parse(savedEvents, (key, value) => {
+      if (key === 'date') return new Date(value);
+      return value;
+    }) : [];
+  });
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [editingDay, setEditingDay] = useState<Date | null>(null);
+  const [newDescription, setNewDescription] = useState('');
+
+  // Save events to localStorage
+  useEffect(() => {
+    console.log('Saving events to localStorage:', events);
+    localStorage.setItem('calendarEvents', JSON.stringify(events));
+  }, [events]);
+
+  // Generate calendar days
+  const generateCalendar = () => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+    
+    const days: Date[] = [];
+    let day = startDate;
+    
+    while (day <= endDate) {
+      days.push(day);
+      day = addDays(day, 1);
     }
-  }, [timeLeft, isSubmitted]);
-
-  // Format time as MM:SS
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    
+    return days;
   };
 
-  // Handle option selection
-  const selectOption = (option: string) => {
-    if (!isSubmitted) {
-      const newAnswers = [...userAnswers];
-      newAnswers[currentQuestion] = option;
-      setUserAnswers(newAnswers);
+  // Handle event creation or update
+  const saveEvent = (day: Date) => {
+    if (!newDescription || !editingDay) return;
+    const newEvent: Event = {
+      id: selectedEvent ? selectedEvent.id : crypto.randomUUID(),
+      description: newDescription,
+      date: day,
+    };
+    if (selectedEvent) {
+      setEvents(events.map(event => (event.id === selectedEvent.id ? newEvent : event)));
+    } else {
+      setEvents([...events, newEvent]);
     }
+    console.log('Event saved:', newEvent);
+    setEditingDay(null);
+    setNewDescription('');
+    setSelectedEvent(null);
   };
 
-  // Navigate to next question
-  const nextQuestion = () => {
-    if (currentQuestion < totalQuestions - 1) {
-      setCurrentQuestion((prev) => prev + 1);
-    }
+  // Handle event deletion
+  const deleteEvent = (id: string) => {
+    setEvents(events.filter(event => event.id !== id));
+    if (selectedEvent?.id === id) setSelectedEvent(null);
+    console.log('Event deleted:', id);
   };
 
-  // Navigate to previous question
-  const prevQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion((prev) => prev - 1);
-    }
+  // Handle drag and drop
+  const handleDrop = (id: string, description: string, newDate: Date) => {
+    setEvents(events.map(event => 
+      event.id === id ? { ...event, date: newDate } : event
+    ));
+    console.log('Event dropped to:', newDate);
   };
 
-  // Submit quiz and calculate score
-  const submitQuiz = () => {
-    if (!isSubmitted) {
-      const calculatedScore = userAnswers.reduce((acc, answer, index) => {
-        return answer === questions[index].answer ? acc + 1 : acc;
-      }, 0);
-      setScore(calculatedScore);
-      setIsSubmitted(true);
-    }
+  // Handle edit or add
+  const handleEditOrAdd = (event: Event | null, day: Date) => {
+    setSelectedEvent(event);
+    setEditingDay(day);
+    setNewDescription(event ? event.description : '');
   };
 
-  // Reset quiz
-  const resetQuiz = () => {
-    setUserAnswers(Array(totalQuestions).fill(null));
-    setCurrentQuestion(0);
-    setIsSubmitted(false);
-    setScore(null);
-    setTimeLeft(600); // Reset timer to 10 minutes
+  // Get events for a specific day
+  const getDayEvents = (day: Date) => {
+    return events.filter(event => isSameDay(event.date, day));
   };
 
-  // Check if all questions are answered
-  const allQuestionsAnswered = userAnswers.every((answer) => answer !== null);
+  // Navigation handlers
+  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
-  const bgColor = useContext(BgContext);
-
-  // Animation variants for flicker effect
-  const flickerVariants = {
-    initial: { opacity: 0.3 },
-    animate: {
-      opacity: [0.3, 1, 0.5, 1, 0.7, 1],
-      transition: { duration: 0.5, times: [0, 0.2, 0.4, 0.6, 0.8, 1] }
-    }
-  };
-
-  // Animation variants for shake effect
-  const shakeVariants = {
-    animate: {
-      x: [-5, 5, -5, 5, 0],
-      transition: { duration: 0.3, times: [0, 0.25, 0.5, 0.75, 1] }
-    }
+  // Animation variants
+  const calendarVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, x: 50, transition: { duration: 0.3 } }
   };
 
   return (
-    <div
-      className={`min-h-screen mt-15 bg-gradient-to-b from-black to-red-900 flex flex-col items-center justify-center p-4 ${bgColor.color}/90 font-creepster`}
-      dir="rtl"
-      style={{ fontFamily: "'Creepster', cursive" }} // Assuming Creepster font is loaded
-    >
-      {/* Timer */}
-      <motion.div
-        className="mb-4 text-2xl text-red-500 font-bold"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        الوقت المتبقي: {formatTime(timeLeft)}
-      </motion.div>
-
-      {/* Skill selection */}
-      <div className="mb-6 flex flex-wrap gap-4 justify-center" dir="ltr">
-        {quizData.map((skill, index) => (
-          <motion.button
-            key={index}
-            onClick={() => {
-              setSelectedSkill(index);
-              setCurrentQuestion(0);
-              setUserAnswers(Array(skill.questions.length).fill(null));
-              setIsSubmitted(false);
-              setScore(null);
-              setTimeLeft(600);
-            }}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer ${
-              selectedSkill === index ? "bg-red-700 text-white" : "bg-gray-800 text-red-400"
-            } shadow-lg hover:bg-red-600 transition-colors duration-300 border border-red-500`}
-            whileHover={{ scale: 1.1, rotate: 3 }}
-            whileTap={{ scale: 0.9 }}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-          >
-            {skill.icon}
-            <span>{skill.title}</span>
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Quiz card */}
-      <motion.div
-        className="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-md border border-red-700"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold flex items-center gap-2 text-red-500">
-            {currentSkill.icon}
-            {currentSkill.title}
-          </h2>
-          <span className="text-gray-400">
-            {currentQuestion + 1} / {totalQuestions}
-          </span>
-        </div>
-
-        {/* Question */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentQuestion}
-            initial={{ opacity: 0, x: 50, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -50, scale: 0.9 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="mb-4"
-          >
-            <p className="text-xl text-white font-semibold">{questions[currentQuestion].question}</p>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Options */}
-        <div className="space-y-3 mb-4">
-          {questions[currentQuestion].options.map((option, index) => (
-            <motion.button
-              key={index}
-              onClick={() => selectOption(option)}
-              className={`w-full p-3 rounded-lg text-right border ${
-                isSubmitted
-                  ? option === questions[currentQuestion].answer
-                    ? "bg-green-700 text-white border-green-500"
-                    : userAnswers[currentQuestion] === option
-                    ? "bg-red-700 text-white border-red-500"
-                    : "bg-gray-800 text-gray-300 border-gray-600"
-                  : userAnswers[currentQuestion] === option
-                  ? "bg-red-600 text-white border-red-500"
-                  : "bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700"
-              } transition-colors duration-300`}
-              whileHover={{ scale: 1.03, boxShadow: "0 4px 12px rgba(255,0,0,0.3)" }}
-              whileTap={{ scale: 0.97 }}
-              variants={isSubmitted && userAnswers[currentQuestion] === option && option !== questions[currentQuestion].answer ? shakeVariants : {}}
-              animate={isSubmitted && userAnswers[currentQuestion] === option && option !== questions[currentQuestion].answer ? "animate" : ""}
-              disabled={isSubmitted && !allQuestionsAnswered}
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex h-auto bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 mt-20">
+        <style>
+          {`
+            .text-gradient {
+              background: linear-gradient(to right, #3B82F6, #8B5CF6);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              font-weight: bold;
+            }
+          `}
+        </style>
+        {/* Calendar Grid */}
+        <motion.div 
+          className="flex-1 p-6 bg-white rounded-2xl shadow-xl m-6"
+          variants={calendarVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          <div className="flex justify-between items-center mb-6">
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={prevMonth}
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 flex items-center gap-2 shadow-md"
             >
-              {option}
+              <CalendarDays size={20} />
+              الشهر السابق
             </motion.button>
-          ))}
-        </div>
-
-        {/* Result */}
-        {isSubmitted && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="mb-4 p-4 bg-gray-800 rounded-lg text-center border border-red-600"
-          >
-            <p className="text-2xl font-bold text-red-500">
-              درجتك: {score}/{totalQuestions}
-            </p>
-            <p className="text-gray-300 mt-2">لقد نجوت من الاختبار... أم لا؟</p>
-            <motion.button
-              onClick={resetQuiz}
-              className="mt-4 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-600 transition-colors duration-300 border border-red-500"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <h2 className="text-2xl font-bold flex items-center gap-2 text-gradient">
+              <CalendarDays size={24} />
+              {format(currentDate, 'MMMM yyyy')}
+            </h2>
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={nextMonth}
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 flex items-center gap-2 shadow-md"
             >
-              إعادة المحاولة
+              الشهر التالي
+              <CalendarDays size={20} />
             </motion.button>
-          </motion.div>
-        )}
+          </div>
 
-        {/* Navigation buttons */}
-        <div className="flex justify-between items-center">
-          <motion.button
-            onClick={prevQuestion}
-            className={`p-2 bg-gray-800 rounded-full hover:bg-red-600 transition-colors duration-300 border border-red-500 ${
-              currentQuestion === 0 ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            whileHover={{ scale: 1.1, rotate: -5 }}
-            whileTap={{ scale: 0.9 }}
-            disabled={currentQuestion === 0}
-            variants={flickerVariants}
-            initial= "initial"
-            animate="animate"
-          >
-            <ChevronLeft className="w-6 h-6 text-red-500" />
-          </motion.button>
+          <div className="grid grid-cols-7 gap-2 text-center">
+            {['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map(day => (
+              <div key={day} className="font-semibold text-gray-700">{day}</div>
+            ))}
+            
+            {generateCalendar().map(day => (
+              <DroppableDay
+                key={day.toString()}
+                day={day}
+                events={getDayEvents(day)}
+                isCurrentMonth={isSameMonth(day, currentDate)}
+                isToday={isSameDay(day, new Date())}
+                onDrop={handleDrop}
+                onAddEvent={() => handleEditOrAdd(null, day)}
+                onEdit={handleEditOrAdd}
+                onDelete={deleteEvent}
+              />
+            ))}
+          </div>
+        </motion.div>
 
-          {!isSubmitted && allQuestionsAnswered && currentQuestion === totalQuestions - 1 && (
-            <motion.button
-              onClick={submitQuiz}
-              className="px-4 py-2 bg-red-700 text-white rounded-lg flex items-center gap-2 hover:bg-red-600 transition-colors duration-300 border border-red-500"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
+        {/* Sidebar for Events */}
+        <motion.div 
+          className="w-96 p-6 bg-white rounded-2xl shadow-xl m-6 overflow-y-auto"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gradient">
+            <CalendarDays size={24} />
+            الأحداث
+          </h3>
+          {editingDay && (
+            <motion.div
+              className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+              }}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
             >
-              <CheckCircle className="w-5 h-5 text-white" />
-              <span>تسليم الاختبار</span>
-            </motion.button>
+              <textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="الوصف"
+                className="w-full p-2 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEvent(editingDay);
+                  }
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => saveEvent(editingDay)}
+                  className="flex-1 p-2 text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg"
+                >
+                  حفظ
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setEditingDay(null);
+                    setNewDescription('');
+                    setSelectedEvent(null);
+                  }}
+                  className="flex-1 p-2 text-sm bg-gray-300 text-gray-800 rounded-lg"
+                >
+                  إلغاء
+                </motion.button>
+              </div>
+            </motion.div>
           )}
-
-          <motion.button
-            onClick={nextQuestion}
-            className={`p-2 bg-gray-800 rounded-full hover:bg-red-600 transition-colors duration-300 border border-red-500 ${
-              currentQuestion === totalQuestions - 1 ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
-            disabled={currentQuestion === totalQuestions - 1}
-            variants={flickerVariants}
-            initial= "initial"
-            animate="animate"
-          >
-            <ChevronRight className="w-6 h-6 text-red-500" />
-          </motion.button>
-        </div>
-      </motion.div>
-    </div>
+          <AnimatePresence>
+            {events.length === 0 ? (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-gray-500"
+              >
+                مفيش أحداث حاليًا
+              </motion.p>
+            ) : (
+              events.map(event => (
+                <motion.div
+                  key={event.id}
+                  className={`p-4 mb-3 rounded-lg cursor-pointer relative
+                    ${selectedEvent?.id === event.id ? 'bg-gradient-to-r from-blue-100 to-purple-100' : 'bg-gray-50'}`}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+                  }}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  <p className="text-sm text-gradient">{event.description}</p>
+                  <p className="text-sm text-gray-600">
+                    {format(event.date, 'MMM d, yyyy')}
+                  </p>
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditOrAdd(event, event.date);
+                      }}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <Edit2 size={16} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteEvent(event.id);
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 size={16} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </DndProvider>
   );
 };
+
+export default Calendar;

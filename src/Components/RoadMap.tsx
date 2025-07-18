@@ -142,7 +142,7 @@ export default function Roadmap({title, sections}){
                                 <h2 className="text-yellow-500 text-xl font-bold">{skill.title}</h2>
                             </div>
                             <button
-                                className={`${completedSkills[skill.title]? "bg-green-500" : "bg-gray-500" } text-amber-50 rounded-2xl p-1 w-fit transition-all duration-100`}
+                                className={`${completedSkills[skill.title]? "bg-green-500" : "bg-gray-500" } text-amber-50 rounded-2xl p-1 w-fit transition-all cursor-pointer duration-100`}
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     toggleSkillCompletion(skill.title)

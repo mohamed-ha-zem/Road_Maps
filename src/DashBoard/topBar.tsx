@@ -38,7 +38,7 @@ export default function TopBar() {
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6 }}
-                className={`w-full px-6 py-3 flex items-center justify-between ${bgColor.color} shadow-lg backdrop-blur-md z-20 absolute`}
+                className={`w-full px-6 py-3 flex items-center justify-between ${bgColor.color} shadow-lg backdrop-blur-md z-20 fixed`}
             >
                 {/* Left Section */}
                 <div className="flex items-center gap-3">

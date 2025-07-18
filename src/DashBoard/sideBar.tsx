@@ -35,7 +35,7 @@ export default function Sidebar() {
           transition={{ duration: 0.3 }}
           style={{ position: "absolute" }}
         >
-          <nav className="space-y-2 overflow-y-auto h-[calc(100vh-100px)] scrollbar-hide pr-1 mt-5 ">
+          <nav className="space-y-2 overflow-y-auto h-[calc(100vh-100px)] scrollbar-hide pr-1 mt-5">
             <DropdownMenu title={"Road Maps"} links={links} bgColor={bgColor}/>
             <DropdownMenu title={"Questions"} links={questions} bgColor={bgColor}/>
             <DropdownMenu title={"famous cities"} links={cities} bgColor={bgColor}/>
