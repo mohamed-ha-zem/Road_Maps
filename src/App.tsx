@@ -36,7 +36,7 @@ import RoadmapCircleFrontEnd from './Charts/front-end';
 import RoadmapCircleBackEnd from './Charts/Back-End';
 import RoadmapCircleMopileApplication from './Charts/MopileApplication';
 import RoadmapCircleGameDevelopment from './Charts/Game-Development';
-import RoadmapCircleDevops from './Charts/DevOps';
+import RoadmapCircleDevops from './Charts/devops';
 import RoadmapCircleMachineLearning from './Charts/Machine-Learning';
 import RoadmapCircleAI from './Charts/AI';
 import RoadmapCircleCyberSecurity from './Charts/cyber-security';
